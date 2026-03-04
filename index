@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Kam patří tahle ulice?</title>
+
+<style>
+  :root{
+    --bg:#ffffff;
+    --ink:#111111;
+    --muted:#6b6b6b;
+    --line:#e8e8e8;
+    --green:#053301;
+    --pink:#d984bd;
+    --radius:20px;
+  }
+
+  *{ box-sizing:border-box; }
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, Helvetica, sans-serif;
+    min-height:100vh;
+  }
+
+  /* Top-left title */
+  .brand{
+    position:fixed;
+    top:22px;
+    left:26px;
+    display:flex;
+    align-items:baseline;
+    gap:10px;
+    z-index:5;
+    user-select:none;
+  }
+  .brand .name{
+    font-weight:900;
+    letter-spacing:-0.02em;
+    font-size:18px;
+    text-transform:uppercase;
+  }
+  .brand .tag{
+    font-weight:700;
+    font-size:12px;
+    color:var(--muted);
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+  }
+
+  /* Layout */
+  .wrap{
+    min-height:100vh;
+    display:grid;
+    place-items:center;
+    padding:90px 26px 40px;
+  }
+
+  .panel{
+    width:min(720px, 100%);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:28px;
+  }
+
+  .toprow{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:16px;
+    border-bottom:1px solid var(--line);
+    padding-bottom:18px;
+    margin-bottom:22px;
+  }
+
+  .meta{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+  }
+  .pill{
+    border:1px solid var(--line);
+    border-radius:999px;
+    padding:8px 12px;
+    font-size:12px;
+    font-weight:800;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    color:var(--muted);
+    background:#fff;
+  }
+  .pill.green{
+    border-color: color-mix(in oklab, var(--green) 18%, #ffffff);
+    color:var(--green);
+  }
+  .pill.pink{
+    border-color: color-mix(in oklab, var(--pink) 22%, #ffffff);
+    color:color-mix(in oklab, var(--pink) 85%, var(--ink));
+  }
+
+  .scorebox{
+    text-align:right;
+  }
+  .scorebox .big{
+    font-weight:950;
+    font-size:16px;
+    letter-spacing:-0.02em;
+  }
+  .scorebox .small{
+    margin-top:2px;
+    font-size:12px;
+    color:var(--muted);
+    font-weight:700;
+    letter-spacing:0.04em;
+    text-transform:uppercase;
+  }
+
+  /* Centered question */
+  .center{
+    text-align:center;
+    padding:10px 8px 0;
+  }
+  .street{
+    font-weight:950;
+    font-size:52px;
+    line-height:1.02;
+    letter-spacing:-0.03em;
+    margin:0 0 12px;
+  }
+  .sub{
+    margin:0 auto;
+    font-size:14px;
+    font-weight:650;
+    color:var(--muted);
+    max-width:58ch;
+  }
+
+  .options{
+    display:grid;
+    gap:10px;
+    margin-top:18px;
+  }
+
+  button.opt{
+    width:100%;
+    border:1px solid var(--ink);
+    background:#fff;
+    color:var(--ink);
+    border-radius:16px;
+    padding:14px 14px;
+    font-size:15px;
+    font-weight:850;
+    letter-spacing:0.01em;
+    cursor:pointer;
+    text-align:left;
+    transition: transform .08s ease, box-shadow .18s ease, background .18s ease;
+  }
+  button.opt:hover{
+    transform:translateY(-1px);
+    box-shadow:0 10px 24px rgba(0,0,0,0.06);
+  }
+  button.opt:active{ transform:translateY(0); }
+  button.opt[disabled]{ opacity:0.7; cursor:default; transform:none; box-shadow:none; }
+
+  /* Feedback */
+  .feedback{
+    margin-top:18px;
+    border-top:1px solid var(--line);
+    padding-top:16px;
+    display:grid;
+    gap:8px;
+  }
+  .result{
+    font-weight:900;
+    letter-spacing:-0.01em;
+    text-align:center;
+  }
+  .result.ok{ color:var(--green); }
+  .result.no{ color:var(--pink); }
+  .note{
+    color:var(--muted);
+    font-size:13px;
+    font-weight:650;
+    text-align:center;
+    max-width:66ch;
+    margin:0 auto;
+    min-height:18px;
+  }
+
+  .nextrow{
+    display:flex;
+    justify-content:center;
+    margin-top:10px;
+  }
+  .btn{
+    border-radius:16px;
+    padding:12px 14px;
+    border:1px solid var(--ink);
+    background:#fff;
+    font-weight:900;
+    cursor:pointer;
+  }
+  .btn.primary{
+    background:var(--ink);
+    color:#fff;
+  }
+
+  /* End screen */
+  .end{
+    text-align:center;
+    padding:10px 8px 0;
+  }
+  .end .kicker{
+    font-weight:900;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    color:var(--muted);
+    font-size:12px;
+    margin-bottom:10px;
+  }
+  .end .title{
+    font-weight:950;
+    font-size:52px;
+    letter-spacing:-0.04em;
+    margin:0 0 10px;
+  }
+  .end .badge{
+    display:inline-flex;
+    align-items:center;
+    gap:10px;
+    margin-top:6px;
+    border:1px solid var(--ink);
+    border-radius:999px;
+    padding:10px 14px;
+    font-weight:950;
+    letter-spacing:-0.01em;
+  }
+  .badge .chip{ width:10px; height:10px; border-radius:999px; background:var(--pink); }
+  .end .meta2{
+    margin-top:14px;
+    color:var(--muted);
+    font-weight:650;
+  }
+  .actions{
+    margin-top:18px;
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    justify-content:center;
+  }
+</style>
+</head>
+
+<body>
+  <div class="brand">
+    <div class="name">Kam patří tahle ulice?</div>
+    <div class="tag">Praha · ulice → čtvrť</div>
+  </div>
+
+  <div class="wrap">
+    <div class="panel" id="panel">
+      <div class="toprow">
+        <div class="meta">
+          <div class="pill green" id="pillRound">Kolo —</div>
+          <div class="pill pink" id="pillMode">10 otázek</div>
+        </div>
+        <div class="scorebox">
+          <div class="big" id="scoreTop">Skóre 0/0</div>
+          <div class="small"></div>
+        </div>
+      </div>
+
+      <div class="center" id="center">
+        <h1 class="street" id="street">—</h1>
+        <p class="sub">Vyber, do které čtvrti patří tahle ulice.</p>
+
+        <div class="options" id="options"></div>
+      </div>
+
+      <div class="feedback">
+        <div class="result" id="result">&nbsp;</div>
+        <div class="note" id="note">&nbsp;</div>
+        <div class="nextrow" id="nextrow" style="display:none;">
+          <button class="btn primary" id="nextBtn">Další</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+  const data = [
+    { street:"Kodaňská", district:"Vršovice", note:"Vršovice mají spoustu „geografických“ názvů." },
+    { street:"Dánská", district:"Vršovice", note:"Vršovice mají spoustu „geografických“ názvů." },
+    { street:"Černomořská", district:"Vršovice", note:"Vršovice mají spoustu „geografických“ názvů." },
+    { street:"Moskevská", district:"Vršovice", note:"Vršovice mají spoustu „geografických“ názvů." },
+
+    { street:"Korunní", district:"Vinohrady", note:"Vinohrady jsou často třídy, instituce a 19. století" },
+    { street:"Slezská", district:"Vinohrady", note:"Často regionální názvy v okolí." },
+    { street:"Americká", district:"Vinohrady", note:"Často regionální názvy v okolí." },
+
+    { street:"Husitská", district:"Žižkov", note:"Žižkov má silnou husitskou linku." },
+    { street:"Prokopova", district:"Žižkov", note:"Žižkov má silnou husitskou linku." },
+    { street:"Cimburkova", district:"Žižkov", note:"Žižkov má silnou husitskou linku." },
+
+    { street:"Zenklova", district:"Libeň", note:"Libeň má staré jádro + průmysl + okraje." },
+    { street:"U Meteoru", district:"Libeň", note:"„U …“ názvy často působí hodně lokálně." },
+
+    { street:"Jugoslávských partyzánů", district:"Dejvice", note:"Dejvice jsou široké třídy, instituce a republika vibe." },
+    { street:"Zelená", district:"Dejvice", note:"Mix kratších názvů a vilových částí." },
+
+    { street:"U Uranie", district:"Holešovice", note:"Holešovice jsou práce, průmysl a industriální atmosféra." },
+    { street:"Komunardů", district:"Holešovice", note:"Holešovice jsou práce, průmysl a industriální atmosféra." },
+
+    { street:"Křižíkova", district:"Karlín", note:"Karlín je spojen s technikou a industriální minulostí." },
+    { street:"Pernerova", district:"Karlín", note:"Karlín je spojen s technikou a industriální minulostí." },
+
+    { street:"Štefánikova", district:"Smíchov", note:"Smíchov jsou radiály, dopravní názvy a řeka." },
+    { street:"Kotevní", district:"Smíchov", note:"Smíchov jsou radiály, dopravní názvy a řeka." },
+    { street:"Ostrovského", district:"Smíchov", note:"Smíchov jsou radiály, dopravní názvy a řeka." },
+
+    { street:"Průběžná", district:"Strašnice", note:"Strašnice jsou spíš rezidenční vrstvy, praktické a místy budovatelské názvy." },
+    { street:"V Olšinách", district:"Strašnice", note:"Strašnice jsou spíš rezidenční vrstvy, praktické a místy budovatelské názvy." },
+    { street:"Dvouletky", district:"Strašnice", note:"Strašnice jsou spíš rezidenční vrstvy, praktické a místy budovatelské názvy." }
+  ];
+
+  const districts = [
+    "Vršovice","Vinohrady","Žižkov","Libeň","Dejvice","Holešovice","Karlín","Smíchov","Strašnice"
+  ];
+
+  const TOTAL_ROUNDS = 10;
+  const CHOICES = 4;
+
+  // pokud bys chtěla jen prodloužit automatické čekání, zvyš tohle:
+  const AUTO_ADVANCE = false;     // ← teď NE: je tam tlačítko „Další“
+  const DELAY_MS = 2200;          // ← když AUTO_ADVANCE = true, tohle se použije
+
+  let round = 0;
+  let score = 0;
+  let current = null;
+  let used = new Set();
+  let locked = false;
+
+  const streetEl = document.getElementById("street");
+  const optionsEl = document.getElementById("options");
+  const resultEl = document.getElementById("result");
+  const noteEl = document.getElementById("note");
+  const pillRound = document.getElementById("pillRound");
+  const scoreTop = document.getElementById("scoreTop");
+  const nextRow = document.getElementById("nextrow");
+  const nextBtn = document.getElementById("nextBtn");
+
+  function shuffle(arr){ return [...arr].sort(()=>Math.random()-0.5); }
+
+  function pickUnique(){
+    if (used.size >= data.length) used.clear();
+    let idx;
+    do { idx = Math.floor(Math.random()*data.length); } while(used.has(idx));
+    used.add(idx);
+    return data[idx];
+  }
+
+  function buildOptions(correct){
+    const opts = [correct];
+    while(opts.length < CHOICES){
+      const d = districts[Math.floor(Math.random()*districts.length)];
+      if(!opts.includes(d)) opts.push(d);
+    }
+    return shuffle(opts);
+  }
+
+  function setIdleFeedback(){
+    resultEl.className = "result";
+    resultEl.innerHTML = "&nbsp;";
+    noteEl.innerHTML = "&nbsp;";
+    nextRow.style.display = "none";
+  }
+
+  function renderRound(){
+    locked = false;
+    round++;
+
+    if(round > TOTAL_ROUNDS) return endGame();
+
+    current = pickUnique();
+
+    streetEl.textContent = current.street;
+    pillRound.textContent = `Kolo ${round}/${TOTAL_ROUNDS}`;
+    scoreTop.textContent = `Skóre ${score}/${round-1}`;
+
+    setIdleFeedback();
+
+    optionsEl.innerHTML = "";
+    const opts = buildOptions(current.district);
+
+    opts.forEach(label => {
+      const btn = document.createElement("button");
+      btn.className = "opt";
+      btn.textContent = label;
+      btn.onclick = () => check(label);
+      optionsEl.appendChild(btn);
+    });
+
+    nextBtn.onclick = () => renderRound();
+  }
+
+  function disableButtons(){
+    document.querySelectorAll("button.opt").forEach(b => b.disabled = true);
+  }
+
+  function check(selected){
+    if(locked) return;
+    locked = true;
+    disableButtons();
+
+    const ok = selected === current.district;
+
+    if(ok){
+      score++;
+      resultEl.textContent = "Správně.";
+      resultEl.classList.add("ok");
+    }else{
+      resultEl.textContent = `Ne — správně je ${current.district}.`;
+      resultEl.classList.add("no");
+    }
+
+    noteEl.textContent = current.note || "";
+    scoreTop.textContent = `Skóre ${score}/${round}`;
+
+    if (AUTO_ADVANCE){
+      setTimeout(renderRound, DELAY_MS);
+    } else {
+      nextRow.style.display = "flex";
+    }
+  }
+
+  function titleFromScore(s,t){
+    const p = s/t;
+    if(p >= 0.9) return "Pražský kartograf";
+    if(p >= 0.7) return "Městský flanér";
+    if(p >= 0.5) return "Lokální průzkumník";
+    if(p >= 0.3) return "Turista s instinktem";
+    return "Ztracená tramvajenka";
+  }
+
+  function endGame(){
+    const title = titleFromScore(score, TOTAL_ROUNDS);
+    const panel = document.getElementById("panel");
+
+    panel.innerHTML = `
+      <div class="toprow">
+        <div class="meta">
+          <div class="pill green">Konec</div>
+          <div class="pill pink">${TOTAL_ROUNDS} otázek</div>
+        </div>
+        <div class="scorebox">
+          <div class="big">${score}/${TOTAL_ROUNDS}</div>
+          <div class="small">finální skóre</div>
+        </div>
+      </div>
+
+      <div class="end">
+        <div class="kicker">Získaný titul</div>
+        <h1 class="title">${title}</h1>
+        <div class="badge"><span class="chip"></span> Praha street intuition certified</div>
+        <div class="meta2">Chceš příště přidat filtrování podle čtvrtí nebo „tématické sety“ (osobnosti / příroda / průmysl)?</div>
+
+        <div class="actions">
+          <button class="btn primary" onclick="location.reload()">Hrát znovu</button>
+          <button class="btn" onclick="copyResult('${title}', ${score}, ${TOTAL_ROUNDS})">Zkopírovat výsledek</button>
+        </div>
+      </div>
+    `;
+  }
+
+  function copyResult(title, score, total){
+    const text = `Kam patří tahle ulice? — ${score}/${total} · titul: ${title}`;
+    navigator.clipboard?.writeText(text).then(()=> {
+      alert("Zkopírováno do schránky ✨");
+    }).catch(()=> {
+      prompt("Zkopíruj ručně:", text);
+    });
+  }
+
+  renderRound();
+</script>
+</body>
+</html>
